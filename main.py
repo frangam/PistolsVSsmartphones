@@ -10,7 +10,7 @@ import numpy as np
 from numpy.random import seed
 seed(1)
 from tensorflow import set_random_seed
-set_random_seed(2)
+set_random_seed(123456789)
 
 
 
@@ -23,7 +23,6 @@ train_path='training_data'
 
 
 train_path='Train/Train/'
-train_path_smartphone='Train/Train/Smarphone'
 
 # validation split
 validation_size = 0.2
