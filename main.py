@@ -22,7 +22,7 @@ num_channels = 3
 train_path='training_data'
 
 
-train_path='Train/Train/'
+train_path='Train/'
 
 # validation split
 validation_size = 0.2
