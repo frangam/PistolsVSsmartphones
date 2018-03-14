@@ -12,9 +12,9 @@ import os
 os.chdir("/Volumes/GoogleDrive/Mi unidad/Proyectos/PistolsVSsmartphones/")
 
 import numpy as np
-import glob as g
+
 import scipy
-import cv2
+
 
 
 from keras.applications.inception_v3 import InceptionV3
@@ -38,9 +38,9 @@ np.random.seed(123)  # for reproducibility
 ####
 # Leemos los datos
 ####
-import loaddata 
+import loaddata as ld
 
-data, labels, test = prepare_all_data()
+data, labels, test = ld.prepare_all_data()
 
 Xtrain, Xtest, yTrain, yTest = train_test_split(data, labels, 
                                                         test_size = 0.2, 

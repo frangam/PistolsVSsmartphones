@@ -10,7 +10,7 @@ import cv2
 import numpy as np
 
 
-def prepare_all_data():
+def prepare_all_data(w=128,h=128):
     pathsTrainPistol=g.glob("Train/Pistol/*[!*.ini]")
     pathsTrainSmartphone=g.glob("Train/Smartphone/*[!*.ini]")
     pathsTest=sorted(g.glob("Test/*[!*.ini]"),key=lambda name: int(name[8:-4]))
@@ -18,8 +18,7 @@ def prepare_all_data():
     pistols=[]
     smartphones=[]
     test=[]
-    w=128
-    h=128
+
     nPistols=len(pathsTrainPistol)
     nSmartphones=len(pathsTrainSmartphone)
     totalRows=nPistols + nSmartphones
@@ -47,3 +46,15 @@ def prepare_all_data():
     test=np.asarray(test)
     
     return (data, labels, test)
+
+
+def submission(prediction, num=1):
+    #generamos la submission
+    pathsTest=sorted(g.glob("Test/*[!*.ini]"),key=lambda name: int(name[8:-4]))
+    submission="ID,Ground_Truth\n"
+    for i,path in enumerate(pathsTest):
+        pred0=int(round(prediction[i,0]))
+        pred='0' if pred0==1 else '1'
+        submission += path[5:] + "," + pred +"\n"
+    with open("submissions/submission"+str(num)+".csv", "w") as f:
+        f.write(submission)
