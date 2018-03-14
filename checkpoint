@@ -1,2 +1,2 @@
-model_checkpoint_path: "deep_learning.ckpt"
-all_model_checkpoint_paths: "deep_learning.ckpt"
+model_checkpoint_path: "deep_learning_model_3"
+all_model_checkpoint_paths: "deep_learning_model_3"

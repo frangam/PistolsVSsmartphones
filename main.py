@@ -17,7 +17,8 @@ set_random_seed(123456789)
 classes = ['Pistol', 'Smartphone']
 num_classes = len(classes)
 validation_size = 0.2
-img_size = 128
+#img_size = 128
+img_size = 56
 num_channels = 3
 train_path='training_data'
 
@@ -31,7 +32,7 @@ validation_size = 0.2
 batch_size = 32
 
 
-data = dataset.read_train_sets(train_path, 128, classes, validation_size=validation_size)
+data = dataset.read_train_sets(train_path, img_size, classes, validation_size=validation_size)
 
 
 
@@ -47,10 +48,10 @@ y_true = tf.placeholder(tf.float32, shape=[None, num_classes], name='y_true')
 y_true_cls = tf.argmax(y_true, dimension=1)
 
 ##Network graph params
-filter_size_conv1 = 3
+filter_size_conv1 = 5
 num_filters_conv1 = 32
 
-filter_size_conv2 = 3
+filter_size_conv2 = 5
 num_filters_conv2 = 32
 
 filter_size_conv3 = 3
@@ -198,7 +199,7 @@ def train(num_iteration):
             epoch = int(i / int(data.train.num_examples / batch_size))
 
             show_progress(epoch, feed_dict_tr, feed_dict_val, val_loss)
-            save_path = saver.save(session, './deep_learning.ckpt')
+            save_path = saver.save(session, './deep_learning_model_3')
             print(save_path)
 
     total_iterations += num_iteration

@@ -1,0 +1,12 @@
+submission nueva
+-Tamaño imagen 56x56
+-22 epochs
+
+
+submission 3:
+-tamaño de filtro 1 = 5
+-muchas más epochs
+
+submission 4:
+-tamaño de filtro 1=5
+-tamaño de filtro 2=5
