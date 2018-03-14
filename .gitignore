@@ -1,5 +1,6 @@
 submissions
 __pycache__
+test_man
 *.h5
 .idea
 .ipynb_checkpoints
