@@ -16,9 +16,13 @@ from keras.layers.normalization import BatchNormalization
 from keras.optimizers import SGD, Nadam
 
 
-####
-# Leemos los datos
-####
+#-------------------------------------
+# Preparamos los datos de MNIST
+#-------------------------------------
+import os
+
+## Cambiar path 
+os.chdir("/Volumes/GoogleDrive/Mi unidad/Proyectos/PistolsVSsmartphones/")
 import loaddata as ld
 
 w=128
@@ -37,7 +41,137 @@ Xtrain, Xtest, yTrain, yTest = train_test_split(data, labels,
 
 steps_per_epoch = len(data) #// 32
 
-model=create_model(w, h)
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Mar 12 14:50:35 2018
+
+@author: frangarcia
+"""
+
+import keras
+from keras.preprocessing.image import ImageDataGenerator
+from keras.models import Sequential
+from keras.layers import Convolution2D,Conv2D,MaxPooling2D,UpSampling2D
+from keras.models import Model
+from keras.layers import Dense,Flatten,Activation, Dropout, GlobalAveragePooling2D
+from keras.layers.normalization import BatchNormalization
+from keras.optimizers import SGD, Nadam
+
+
+#-------------------------------------
+# Preparamos los datos de MNIST
+#-------------------------------------
+import os
+
+## Cambiar path 
+os.chdir("/Volumes/GoogleDrive/Mi unidad/Proyectos/PistolsVSsmartphones/")
+os.chdir("")
+import loaddata as ld
+
+WEIGHT=128
+HEIGHT=128
+
+EPOCHS = 10
+BATCH_SIZE = 50
+
+
+
+X_train, y_rain, test = ld.prepare_all_data(WEIGHT, HEIGHT)
+
+Xtrain, Xtest, yTrain, yTest = train_test_split(data, labels, 
+                                                        test_size = 0.2, 
+                                                        stratify=labels)
+
+steps_per_epoch = len(data) #// 32
+
+
+
+#-------------------------------------
+# Model
+#-------------------------------------
+model = Sequential()
+    
+model.add(Conv2D(32, (3, 3), input_shape=(w,h,1)))
+model.add(Activation('relu'))
+
+model.add(Conv2D(32, (3, 3)))
+model.add(Activation('relu'))
+
+model.add(MaxPooling2D(pool_size=(2,2)))
+
+model.add(Conv2D(64,(3, 3)))
+model.add(Activation('relu'))
+
+model.add(Conv2D(64, (3, 3)))
+model.add(Activation('relu'))
+
+model.add(MaxPooling2D(pool_size=(2,2)))
+
+model.add(Flatten())
+
+model.add(Dense(512)) # capa completamente conectada
+model.add(Activation('relu'))
+model.add(BatchNormalization())
+model.add(Dropout(0.7))
+
+model.add(Dense(10))
+model.add(Activation('softmax'))
+
+model.compile(loss='categorical_crossentropy',
+      optimizer=keras.optimizers.Adam(lr=27*1e-04,clipnorm=1., clipvalue=0.5),
+      metrics=['accuracy'])
+
+
+#-------------------------------------
+# Entrenamiento
+#-------------------------------------
+
+# con data-augmentation
+train_gen = ImageDataGenerator(rotation_range=90,width_shift_range=0.03, 
+                             height_shift_range=0.03, horizontal_flip=True, 
+                             vertical_flip=True, zoom_range=0.08)
+#sin
+test_gen = ImageDataGenerator()
+
+train_generator = train_gen.flow(X_train, Y_train, batch_size=BATCH_SIZE)
+test_generator = test_gen.flow(X_test, Y_test, batch_size=BATCH_SIZE)
+test_aug_generator = train_gen.flow(X_test, Y_test, batch_size=BATCH_SIZE)
+train_no_aug_generator = test_gen.flow(X_train, Y_train, batch_size=BATCH_SIZE)
+
+#entrenamos el modelo
+model.fit_generator(train_generator, steps_per_epoch=X_train.shape[0]//BATCH_SIZE, epochs=EPOCHS)
+                    #,validation_data=test_generator, validation_steps=X_test.shape[0]//BATCH_SIZE)
+
+
+
+
+# this is the augmentation configuration we will use for training
+train_datagen = ImageDataGenerator(horizontal_flip=True,  vertical_flip=True,
+                                   rotation_range=90,
+                                   width_shift_range=0.2, 
+                                   height_shift_range=0.2)
+train_generator = train_datagen.flow_from_directory(
+		'Train',
+		target_size=(WEIGHT, HEIGHT),
+		batch_size=32)
+
+
+
+
+
+
+
+
+prediction = model.predict(test)
+
+ld.submission(prediction, 3)
+
+
+
+
+
 
 # this is the augmentation configuration we will use for training
 train_datagen = ImageDataGenerator(horizontal_flip=True,  vertical_flip=True,
