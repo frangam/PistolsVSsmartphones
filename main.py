@@ -1,208 +1,148 @@
-import dataset
-import tensorflow as tf
-import time
-from datetime import timedelta
-import math
-import random
-import numpy as np
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Mar 12 14:50:35 2018
 
-#Adding Seed so that random initialization is consistent
-from numpy.random import seed
-seed(1)
-from tensorflow import set_random_seed
-set_random_seed(123456789)
+@author: frangarcia
+"""
 
-
-
-classes = ['Pistol', 'Smartphone']
-num_classes = len(classes)
-validation_size = 0.2
-#img_size = 128
-img_size = 56
-num_channels = 3
-train_path='training_data'
-
-
-train_path='Train/'
-
-# validation split
-validation_size = 0.2
-
-# batch size
-batch_size = 32
-
-
-data = dataset.read_train_sets(train_path, img_size, classes, validation_size=validation_size)
+import keras
+from keras.preprocessing.image import ImageDataGenerator
+from keras.models import Sequential, Model
+from keras.layers.convolutional import Conv2D, MaxPooling2D, ZeroPadding2D
+from keras.layers import Dense,Flatten,Activation, Dropout,GlobalAveragePooling2D
+from keras.layers.normalization import BatchNormalization
+from keras.optimizers import SGD, Nadam
+from keras.callbacks import TensorBoard,ModelCheckpoint
+from time import time
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+import os
 
 
 
-print("Complete reading input data. Will Now print a snippet of it")
-print("Number of files in Training-set:\t\t{}".format(len(data.train.labels)))
-print("Number of files in Validation-set:\t{}".format(len(data.valid.labels)))
-
-session = tf.Session()
-x = tf.placeholder(tf.float32, shape=[None, img_size, img_size, num_channels], name='x')
-
-## labels
-y_true = tf.placeholder(tf.float32, shape=[None, num_classes], name='y_true')
-y_true_cls = tf.argmax(y_true, dimension=1)
-
-##Network graph params
-filter_size_conv1 = 5
-num_filters_conv1 = 32
-
-filter_size_conv2 = 5
-num_filters_conv2 = 32
-
-filter_size_conv3 = 3
-num_filters_conv3 = 64
-
-fc_layer_size = 128
+#-------------------------------------
+# Preparamos los datos de MNIST
+#-------------------------------------
 
 
-def create_weights(shape):
-    return tf.Variable(tf.truncated_normal(shape, stddev=0.05))
+## Cambiar path 3
+#os.chdir("/Volumes/GoogleDrive/Mi unidad/Proyectos/PistolsVSsmartphones/")
+os.chdir("C:\\Users\\Garmo\\Dropbox\Master\\MD_avanzada\\kaggle")
+import loaddata as ld
 
 
-def create_biases(size):
-    return tf.Variable(tf.constant(0.05, shape=[size]))
+WEIGHT = 128
+HEIGHT = 128
+CHANNELS = 3
+
+EPOCHS = 30
+BATCH_SIZE = 64
+VAL_SIZE = 64
+NUM_CLASSES = 2
 
 
-def create_convolutional_layer(input,
-                               num_input_channels,
-                               conv_filter_size,
-                               num_filters):
-    ## We shall define the weights that will be trained using create_weights function.
-    weights = create_weights(shape=[conv_filter_size, conv_filter_size, num_input_channels, num_filters])
-    ## We create biases using the create_biases function. These are also trained.
-    biases = create_biases(num_filters)
+X_train, y_train, test = ld.prepare_all_data(WEIGHT, HEIGHT)
 
-    ## Creating the convolutional layer
-    layer = tf.nn.conv2d(input=input,
-                         filter=weights,
-                         strides=[1, 1, 1, 1],
-                         padding='SAME')
-
-    layer += biases
-
-    ## We shall be using max-pooling.
-    layer = tf.nn.max_pool(value=layer,
-                           ksize=[1, 2, 2, 1],
-                           strides=[1, 2, 2, 1],
-                           padding='SAME')
-    ## Output of pooling is fed to Relu which is the activation function for us.
-    layer = tf.nn.relu(layer)
-
-    return layer
+X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, 
+                                                        test_size = 0.2, 
+                                                        stratify=y_train)
 
 
-def create_flatten_layer(layer):
-    # We know that the shape of the layer will be [batch_size img_size img_size num_channels]
-    # But let's get it from the previous layer.
-    layer_shape = layer.get_shape()
-
-    ## Number of features will be img_height * img_width* num_channels. But we shall calculate it in place of hard-coding it.
-    num_features = layer_shape[1:4].num_elements()
-
-    ## Now, we Flatten the layer so we shall have to reshape to num_features
-    layer = tf.reshape(layer, [-1, num_features])
-
-    return layer
 
 
-def create_fc_layer(input,
-                    num_inputs,
-                    num_outputs,
-                    use_relu=True):
-    # Let's define trainable weights and biases.
-    weights = create_weights(shape=[num_inputs, num_outputs])
-    biases = create_biases(num_outputs)
 
-    # Fully connected layer takes input x and produces wx+b.Since, these are matrices, we use matmul function in Tensorflow
-    layer = tf.matmul(input, weights) + biases
-    if use_relu:
-        layer = tf.nn.relu(layer)
+#-------------------------------------
+# Model
+#-------------------------------------
 
-    return layer
+from keras.applications import VGG16
+base_model = VGG16(weights='imagenet', include_top=False, 
+                   input_shape=(WEIGHT, HEIGHT, CHANNELS))
 
+# freeze layers
+for i,layer in enumerate(base_model.layers):
+    layer.trainable = False
+    print(i,layer.name)
+ 
 
-layer_conv1 = create_convolutional_layer(input=x,
-                                         num_input_channels=num_channels,
-                                         conv_filter_size=filter_size_conv1,
-                                         num_filters=num_filters_conv1)
-layer_conv2 = create_convolutional_layer(input=layer_conv1,
-                                         num_input_channels=num_filters_conv1,
-                                         conv_filter_size=filter_size_conv2,
-                                         num_filters=num_filters_conv2)
-
-layer_conv3 = create_convolutional_layer(input=layer_conv2,
-                                         num_input_channels=num_filters_conv2,
-                                         conv_filter_size=filter_size_conv3,
-                                         num_filters=num_filters_conv3)
-
-layer_flat = create_flatten_layer(layer_conv3)
-
-layer_fc1 = create_fc_layer(input=layer_flat,
-                            num_inputs=layer_flat.get_shape()[1:4].num_elements(),
-                            num_outputs=fc_layer_size,
-                            use_relu=True)
-
-layer_fc2 = create_fc_layer(input=layer_fc1,
-                            num_inputs=fc_layer_size,
-                            num_outputs=num_classes,
-                            use_relu=False)
-
-y_pred = tf.nn.softmax(layer_fc2, name='y_pred')
-
-y_pred_cls = tf.argmax(y_pred, dimension=1)
-session.run(tf.global_variables_initializer())
-cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=layer_fc2,
-                                                        labels=y_true)
-cost = tf.reduce_mean(cross_entropy)
-optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
-correct_prediction = tf.equal(y_pred_cls, y_true_cls)
-accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-
-session.run(tf.global_variables_initializer())
+# FINE-TUNE
+model = Sequential()
+ 
+# Add the vgg convolutional base model
+model.add(base_model)
+ 
+# Add new layers
+model.add(Flatten())
+model.add(Dense(1024, activation='relu'))
+#model.add(BatchNormalization())
+model.add(Dropout(0.7))
+model.add(Dense(NUM_CLASSES, activation='softmax'))
 
 
-def show_progress(epoch, feed_dict_train, feed_dict_validate, val_loss):
-    acc = session.run(accuracy, feed_dict=feed_dict_train)
-    val_acc = session.run(accuracy, feed_dict=feed_dict_validate)
-    msg = "Training Epoch {0} --- Training Accuracy: {1:>6.1%}, Validation Accuracy: {2:>6.1%},  Validation Loss: {3:.3f}"
-    print(msg.format(epoch + 1, acc, val_acc, val_loss))
+
+# Compile the model
+model.compile(loss='categorical_crossentropy',
+              optimizer=keras.optimizers.Adam(lr=0.0001),
+              metrics=['accuracy'])
 
 
-total_iterations = 0
 
-saver = tf.train.Saver()
+#-------------------------------------
+# Entrenamiento
+#-------------------------------------
+    
 
+## con data-augmentation
+train_gen = ImageDataGenerator(rescale=1./255,
+                               rotation_range=20,
+                               shear_range=0.2,
+                               zoom_range=0.2,
+                               horizontal_flip=True,
+                               fill_mode='nearest')
+test_gen = ImageDataGenerator(rescale=1./255)
 
-def train(num_iteration):
-    global total_iterations
+train_generator = train_gen.flow(X_train, y_train, batch_size=BATCH_SIZE)
+test_generator = test_gen.flow(X_test, y_test, batch_size=VAL_SIZE)
 
-    for i in range(total_iterations,
-                   total_iterations + num_iteration):
-
-        x_batch, y_true_batch, _, cls_batch = data.train.next_batch(batch_size)
-        x_valid_batch, y_valid_batch, _, valid_cls_batch = data.valid.next_batch(batch_size)
-
-        feed_dict_tr = {x: x_batch,
-                        y_true: y_true_batch}
-        feed_dict_val = {x: x_valid_batch,
-                         y_true: y_valid_batch}
-
-        session.run(optimizer, feed_dict=feed_dict_tr)
-
-        if i % int(data.train.num_examples / batch_size) == 0:
-            val_loss = session.run(cost, feed_dict=feed_dict_val)
-            epoch = int(i / int(data.train.num_examples / batch_size))
-
-            show_progress(epoch, feed_dict_tr, feed_dict_val, val_loss)
-            save_path = saver.save(session, './deep_learning_model_3')
-            print(save_path)
-
-    total_iterations += num_iteration
+#entrenamos el modelo
+#multiplicamos por 2 steps_per_epoch ya que usamos data augmentation
+trained_model = model.fit_generator(train_generator, 
+                    steps_per_epoch=2*X_train.shape[0]//BATCH_SIZE, 
+                    epochs=EPOCHS,
+                    validation_data=test_generator, 
+                    validation_steps=X_test.shape[0]//VAL_SIZE)
+                
+model.save("pretrained_model_all_freeze.h5")
 
 
-train(num_iteration=3000)
+#-------------------------------------
+# Resultados evaluación
+#-------------------------------------
+train_acc = trained_model.history['acc']
+val_acc = trained_model.history['val_acc']
+train_loss = trained_model.history['loss']
+val_loss = trained_model.history['val_loss']
+ep = range(len(train_acc))
+
+plt.plot(ep, train_acc, 'b', label='Training Accuracy')
+plt.plot(ep, val_acc, 'r', label='Validation Accuracy')
+#plt.title('Evaluación del modelo fine-tuned VGG-16 (Accuracy)')
+plt.legend()
+
+plt.figure()
+
+plt.plot(ep, train_loss, 'b', label='Training loss')
+plt.plot(ep, val_loss, 'r', label='Validation loss')
+#plt.title('Evaluación del modelo fine-tuned VGG-16 (loss)')
+plt.legend()
+
+#-------------------------------------
+# Prediccion
+#-------------------------------------
+#predict_generator =  train_gen.flow(test, batch_size=BATCH_SIZE)
+#prediction = model.predict_generator(predict_generator)
+
+prediction = model.predict(test)
+ld.submission(prediction, 14)
+
